@@ -5,7 +5,7 @@
 A computer-controlled flat panel for astrophotography calibration frames, designed for the William Optics RedCat 51. It connects to NINA via ASCOM Alpaca (auto-discovered over LAN) and acts as a standard CoverCalibrator device.
 
 **Features:**
-- Variable LED brightness (0–255) with **25 kHz PWM** — eliminates the horizontal banding that kills flat frames with standard Arduino PWM (490 Hz)
+- Variable LED brightness (0–640) with **25 kHz PWM** on Timer1 (16-bit, pin 11) — 640 hardware steps vs. 80 on a standard 8-bit timer; eliminates the horizontal banding that kills flat frames with standard Arduino PWM (490 Hz)
 - Motorized dust cover (stepper motor, 270° swing) that opens parallel to the tube to minimize wind resistance
 - Fully automated flat frame sequences: NINA opens the cover, sets brightness, takes flats, closes cover
 
@@ -152,7 +152,7 @@ All parts are in `cad/flat_panel_v2.scad` (OpenSCAD, parametric). Open the file 
 
 ### Circuit diagram
 
-`cad/circuit.svg` — open in any browser. Shows all wiring: MOSFET dimmer circuit (pin 9 → 220Ω → IRLZ44N), ULN2003 stepper driver (pins 22/24/26/28), LED strip splice, and power rails.
+`cad/circuit.svg` — open in any browser. Shows all wiring: MOSFET dimmer circuit (pin 11 → 470Ω → IRLZ44N), ULN2003 stepper driver (pins 22/24/26/28), LED strip splice, and power rails.
 
 ---
 
@@ -164,7 +164,7 @@ All parts are in `cad/flat_panel_v2.scad` (OpenSCAD, parametric). Open the file 
 - [ ] Wire circuit per `cad/circuit.svg`
 - [ ] Flash `firmware/firmware.ino` to Arduino Mega via Arduino IDE
 - [ ] Test serial protocol: open Serial Monitor (57600 baud), type `COMMAND:PING` → should reply `RESULT:PING:OK:...`
-- [ ] Verify 25 kHz PWM: hold a small speaker near pin 9 — should be **silent** (25 kHz is above hearing range)
+- [ ] Verify 25 kHz PWM: hold a small speaker near pin 11 — should be **silent** (25 kHz is above hearing range)
 - [ ] Test stepper: send `COMMAND:COVER:OPEN` — cover should swing 270° and hold against gentle pressure
 - [ ] Calibrate `STEPS_OPEN` in firmware if the open angle needs adjustment (default: 1536 steps = 270°)
 - [ ] Install Python deps: `pip install -r requirements.txt`

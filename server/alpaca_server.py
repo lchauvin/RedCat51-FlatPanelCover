@@ -223,8 +223,8 @@ def _build_device_bp(bridge: SerialBridge) -> Blueprint:
             brightness = int(request.form.get("Brightness", 0))
         except (ValueError, TypeError):
             return _err(ALPACA_VALUE_ERROR, "Brightness must be an integer 0-255")
-        if not 0 <= brightness <= 255:
-            return _err(ALPACA_VALUE_ERROR, "Brightness must be in range 0-255")
+        if not 0 <= brightness <= config.MAX_BRIGHTNESS:
+            return _err(ALPACA_VALUE_ERROR, f"Brightness must be in range 0-{config.MAX_BRIGHTNESS}")
         try:
             bridge.calibrator_on(brightness)
         except SerialBridgeError as exc:

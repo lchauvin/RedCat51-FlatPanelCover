@@ -3,12 +3,13 @@
  * Arduino Mega 2560
  *
  * Features:
- *   - 25 kHz PWM on pin 9 (Timer2 OC2B) — eliminates flat-frame banding
+ *   - 25 kHz PWM on pin 11 (Timer1 OC1A, 16-bit) — 640 brightness steps,
+ *     eliminates flat-frame banding from camera rolling shutter.
  *   - 28BYJ-48 stepper on pins 22/24/26/28 via ULN2003 — 270° motorised cover
  *     Self-locking gears hold the cover against wind even when unpowered.
  *
  * Wiring:
- *   Pin 9  (OC2B) → 220Ω → IRLZ44N Gate (10kΩ pull-down Gate→GND)
+ *   Pin 11 (OC1A) → 470Ω → IRLZ44N Gate (10kΩ pull-down Gate→GND)
  *   IRLZ44N Drain → LED strip (−)  |  LED strip (+) → 5V USB (own cable)
  *   IRLZ44N Source → GND
  *
@@ -21,7 +22,7 @@
 #include <Stepper.h>
 
 // ── Pin assignments ─────────────────────────────────────────────────────────
-static const uint8_t LED_PIN = 9;  // OC2B — Timer2 25 kHz PWM
+static const uint8_t LED_PIN = 11;  // OC1A — Timer1 25 kHz PWM (16-bit, 640 steps)
 
 // 28BYJ-48 via ULN2003 — pin order IN1,IN3,IN2,IN4 gives correct step sequence
 static const uint8_t STEP_IN1 = 22;
@@ -37,6 +38,11 @@ static const int STEPS_OPEN    = 1536;
 // Motor speed — do not exceed 15 RPM (torque drops sharply above this)
 static const int MOTOR_RPM     = 12;
 
+// ── Brightness range ────────────────────────────────────────────────────────
+// Timer1 at 25 kHz with prescaler=1: TOP = 16 MHz / 25 000 = 640 counts.
+// External brightness range is 0-640 (reported as maxbrightness to Alpaca).
+static const uint16_t MAX_BRIGHTNESS = 640;
+
 // ── Device identity ─────────────────────────────────────────────────────────
 static const char* DEVICE_GUID = "A1B2C3D4-E5F6-7890-ABCD-EF1234567890";
 static const char* DEVICE_INFO = "RedCat51FlatPanel v1.0";
@@ -47,39 +53,38 @@ enum CoverState { COVER_OPEN = 0, COVER_CLOSED = 1, COVER_MOVING = 2 };
 // Correct step sequence for 28BYJ-48: IN1, IN3, IN2, IN4
 Stepper coverStepper(STEPS_PER_REV, STEP_IN1, STEP_IN3, STEP_IN2, STEP_IN4);
 
-uint8_t    ledBrightness = 0;
+uint16_t   ledBrightness = 0;
 bool       ledOn         = false;
 CoverState coverState    = COVER_CLOSED;
 int        stepPosition  = 0;   // current step position (0 = closed)
 String     inputBuffer;
 
-// ── 25 kHz PWM setup (Timer2 OC2B = pin 9) ─────────────────────────────────
-// f_pwm = 16 MHz / (prescaler × (OCR2A + 1)) = 16 000 000 / (8 × 80) = 25 000 Hz
-// OCR2B range: 0 (0 % duty) … 79 (100 % duty)
+// ── 25 kHz PWM setup (Timer1 OC1A = pin 11) ────────────────────────────────
+// Timer1 Fast PWM mode 14 (WGM13:0 = 1110), ICR1 as TOP, prescaler = 1.
+// f_pwm = 16 MHz / (1 × 640) = 25 000 Hz
+// OCR1A range: 0 (0 % duty) … ≥640 (100 % duty, compare never fires)
 void setupPWM25kHz() {
     pinMode(LED_PIN, OUTPUT);
-    // Fast PWM mode, TOP = OCR2A, clear OC2B on compare match (non-inverting)
-    TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
-    // WGM22=1 selects OCR2A as TOP; CS21=1 selects prescaler /8
-    TCCR2B = _BV(WGM22) | _BV(CS21);
-    OCR2A  = 79;   // TOP → 25 kHz
-    OCR2B  = 0;    // duty → 0 %
+    // COM1A1=1, COM1A0=0: clear OC1A on compare match, set at BOTTOM (non-inverting)
+    // WGM11=1, WGM10=0: part of mode 14
+    TCCR1A = _BV(COM1A1) | _BV(WGM11);
+    // WGM13=1, WGM12=1: ICR1 as TOP; CS10=1: prescaler = 1
+    TCCR1B = _BV(WGM13) | _BV(WGM12) | _BV(CS10);
+    ICR1  = 639;   // TOP = 640 counts → 25 kHz
+    OCR1A = 0;     // duty → 0 %
 }
 
-// Map external 0-255 brightness to internal 0-79 Timer2 duty cycle.
-// Multiply by 80 (not 79): input 255 → OCR2B=80 > OCR2A=79, compare never fires
-// → output stays HIGH = true 100 % duty.
-// Special case for 0: disconnect OC2B from the timer and drive the pin LOW.
-// At OCR2B=0 in fast PWM non-inverting mode the AVR still fires a 1-cycle
-// glitch pulse each period, keeping LEDs faintly lit.
-void setLEDDuty(uint8_t brightness255) {
-    uint8_t duty = (uint8_t)((uint16_t)brightness255 * 80 / 255);
-    if (duty == 0) {
-        TCCR2A &= ~_BV(COM2B1);   // disconnect OC2B from timer output
+// Set LED brightness (0 = off … 640 = 100 % duty).
+// brightness=0: disconnect OC1A and drive LOW — avoids the 1-cycle hardware
+//   glitch pulse that keeps LEDs faintly lit at OCR1A=0 in fast PWM mode.
+// brightness≥640: OCR1A > ICR1 → compare never fires → true 100 % duty.
+void setLEDDuty(uint16_t brightness) {
+    if (brightness == 0) {
+        TCCR1A &= ~_BV(COM1A1);   // disconnect OC1A from timer output
         digitalWrite(LED_PIN, LOW);
     } else {
-        TCCR2A |= _BV(COM2B1);    // reconnect OC2B to timer output
-        OCR2B = duty;
+        TCCR1A |= _BV(COM1A1);    // reconnect OC1A to timer output
+        OCR1A = (brightness >= MAX_BRIGHTNESS) ? MAX_BRIGHTNESS : brightness;
     }
 }
 
@@ -120,8 +125,8 @@ void handleCommand(const String& cmd) {
 
     } else if (cmd.startsWith("COMMAND:CALIBRATOR:ON:")) {
         int val = cmd.substring(22).toInt();
-        val = constrain(val, 0, 255);
-        ledBrightness = (uint8_t)val;
+        val = constrain(val, 0, (int)MAX_BRIGHTNESS);
+        ledBrightness = (uint16_t)val;
         ledOn = true;
         setLEDDuty(ledBrightness);
         Serial.println("RESULT:CALIBRATOR:ON:OK");

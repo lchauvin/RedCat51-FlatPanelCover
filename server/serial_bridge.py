@@ -94,8 +94,8 @@ class SerialBridge:
     # ── High-level API ─────────────────────────────────────────────────────
 
     def calibrator_on(self, brightness: int) -> None:
-        """Turn LEDs on at 0-255 brightness."""
-        brightness = max(0, min(255, brightness))
+        """Turn LEDs on at 0-640 brightness."""
+        brightness = max(0, min(config.MAX_BRIGHTNESS, brightness))
         resp = self._cmd(f"COMMAND:CALIBRATOR:ON:{brightness}")
         if resp != "RESULT:CALIBRATOR:ON:OK":
             raise SerialBridgeError(f"calibrator_on failed: {resp!r}")
