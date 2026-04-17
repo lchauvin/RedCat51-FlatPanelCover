@@ -1,0 +1,32 @@
+{
+    "fileFormatVersion": "1",
+    "parameterSets": {
+        "New set 1": {
+            "$fn": "128",
+            "ENABLE_SKIRT": "false",
+            "acrylic_sq": "56",
+            "acrylic_t": "3.3999999999999999",
+            "air_gap_h": "5",
+            "aperture_d": "68",
+            "arms_spacing": "10",
+            "dew_shield_od": "63",
+            "diffuser_h": "5",
+            "ear_hole_d": "4.2000000000000002",
+            "ear_screw_d": "3.3999999999999999",
+            "ear_spacing": "35",
+            "fit_gap": "0.40000000000000002",
+            "shaft_d": "5",
+            "shaft_flat": "1.6000000000000001",
+            "shelf_h": "2",
+            "stepper_d": "28.199999999999999",
+            "stepper_len": "19.5",
+            "taper_extra": "3",
+            "uln_comp_h": "12",
+            "uln_mount_d": "2.3999999999999999",
+            "uln_pcb_l": "32",
+            "uln_pcb_t": "1.6000000000000001",
+            "uln_pcb_w": "28",
+            "uln_wall": "2"
+        }
+    }
+}
