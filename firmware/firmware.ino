@@ -3,8 +3,11 @@
  * Arduino Mega 2560
  *
  * Features:
- *   - 25 kHz PWM on pin 11 (Timer1 OC1A, 16-bit) — 640 brightness steps,
- *     eliminates flat-frame banding from camera rolling shutter.
+ *   - 2.5 kHz PWM on pin 11 (Timer1 OC1A, 16-bit) — 6400 timer steps, external
+ *     range 0-1000 (capped at 15.6 % duty).  Lower frequency gives 10× finer
+ *     relative resolution at the low-brightness operating point used for flats.
+ *     2.5 kHz is safe for flat frames: even a 0.1 s exposure captures 250 full
+ *     PWM cycles — no banding.  25 kHz would limit resolution to 640 steps.
  *   - 28BYJ-48 stepper on pins 22/24/26/28 via ULN2003 — 270° motorised cover
  *     Self-locking gears hold the cover against wind even when unpowered.
  *
@@ -22,7 +25,7 @@
 #include <Stepper.h>
 
 // ── Pin assignments ─────────────────────────────────────────────────────────
-static const uint8_t LED_PIN = 11;  // OC1A — Timer1 25 kHz PWM (16-bit, 640 steps)
+static const uint8_t LED_PIN = 11;  // OC1A — Timer1 2.5 kHz PWM (16-bit, 6400 steps)
 
 // 28BYJ-48 via ULN2003 — pin order IN1,IN3,IN2,IN4 gives correct step sequence
 static const uint8_t STEP_IN1 = 22;
@@ -39,9 +42,11 @@ static const int STEPS_OPEN    = 1536;
 static const int MOTOR_RPM     = 12;
 
 // ── Brightness range ────────────────────────────────────────────────────────
-// Timer1 at 25 kHz with prescaler=1: TOP = 16 MHz / 25 000 = 640 counts.
-// External brightness range is 0-640 (reported as maxbrightness to Alpaca).
-static const uint16_t MAX_BRIGHTNESS = 640;
+// Timer1 at 2.5 kHz with prescaler=1: TOP = 16 MHz / 2 500 = 6 400 counts.
+// External range 0-1000; OCR1A=1000 → duty=1000/6400=15.6 % (practical max
+// for this strip).  Old brightness=10 ≈ new brightness=100 (same physical
+// output, but step 100→101 is a 1 % relative change vs. 10 % before).
+static const uint16_t MAX_BRIGHTNESS = 1000;
 
 // ── Device identity ─────────────────────────────────────────────────────────
 static const char* DEVICE_GUID = "A1B2C3D4-E5F6-7890-ABCD-EF1234567890";
@@ -59,18 +64,18 @@ CoverState coverState    = COVER_CLOSED;
 int        stepPosition  = 0;   // current step position (0 = closed)
 String     inputBuffer;
 
-// ── 25 kHz PWM setup (Timer1 OC1A = pin 11) ────────────────────────────────
+// ── PWM setup (Timer1 OC1A = pin 11) ────────────────────────────────────────
 // Timer1 Fast PWM mode 14 (WGM13:0 = 1110), ICR1 as TOP, prescaler = 1.
-// f_pwm = 16 MHz / (1 × 640) = 25 000 Hz
-// OCR1A range: 0 (0 % duty) … ≥640 (100 % duty, compare never fires)
-void setupPWM25kHz() {
+// f_pwm = 16 MHz / (1 × 6400) = 2 500 Hz
+// OCR1A range: 0 (0 % duty) … 1000 (15.6 % duty, capped by MAX_BRIGHTNESS)
+void setupPWM() {
     pinMode(LED_PIN, OUTPUT);
     // COM1A1=1, COM1A0=0: clear OC1A on compare match, set at BOTTOM (non-inverting)
     // WGM11=1, WGM10=0: part of mode 14
     TCCR1A = _BV(COM1A1) | _BV(WGM11);
     // WGM13=1, WGM12=1: ICR1 as TOP; CS10=1: prescaler = 1
     TCCR1B = _BV(WGM13) | _BV(WGM12) | _BV(CS10);
-    ICR1  = 639;   // TOP = 640 counts → 25 kHz
+    ICR1  = 6399;  // TOP = 6400 counts → 2500 Hz
     OCR1A = 0;     // duty → 0 %
 }
 
@@ -173,7 +178,7 @@ void handleCommand(const String& cmd) {
 // ── Arduino lifecycle ─────────────────────────────────────────────────────────
 void setup() {
     Serial.begin(57600);
-    setupPWM25kHz();
+    setupPWM();
 
     // Stepper pin modes
     pinMode(STEP_IN1, OUTPUT);
