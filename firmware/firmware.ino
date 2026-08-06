@@ -28,10 +28,10 @@
 static const uint8_t LED_PIN = 11;  // OC1A — Timer1 2.5 kHz PWM (16-bit, 6400 steps)
 
 // 28BYJ-48 via ULN2003 — pin order IN1,IN3,IN2,IN4 gives correct step sequence
-static const uint8_t STEP_IN1 = 22;
-static const uint8_t STEP_IN2 = 24;
-static const uint8_t STEP_IN3 = 26;
-static const uint8_t STEP_IN4 = 28;
+static const uint8_t STEP_IN1 = 29;
+static const uint8_t STEP_IN2 = 27;
+static const uint8_t STEP_IN3 = 25;
+static const uint8_t STEP_IN4 = 23;
 
 // ── Stepper parameters ──────────────────────────────────────────────────────
 // 28BYJ-48: 2048 steps per full revolution (64:1 gear × 32 internal steps)
@@ -39,14 +39,14 @@ static const int STEPS_PER_REV = 2048;
 // 270° = 2048 × (270/360) = 1536 steps
 static const int STEPS_OPEN    = 1536;
 // Motor speed — do not exceed 15 RPM (torque drops sharply above this)
-static const int MOTOR_RPM     = 12;
+static const int MOTOR_RPM     = 6;
 
 // ── Brightness range ────────────────────────────────────────────────────────
 // Timer1 at 2.5 kHz with prescaler=1: TOP = 16 MHz / 2 500 = 6 400 counts.
 // External range 0-1000; OCR1A=1000 → duty=1000/6400=15.6 % (practical max
 // for this strip).  Old brightness=10 ≈ new brightness=100 (same physical
 // output, but step 100→101 is a 1 % relative change vs. 10 % before).
-static const uint16_t MAX_BRIGHTNESS = 1000;
+static const uint16_t MAX_BRIGHTNESS = 2000;
 
 // ── Device identity ─────────────────────────────────────────────────────────
 static const char* DEVICE_GUID = "A1B2C3D4-E5F6-7890-ABCD-EF1234567890";

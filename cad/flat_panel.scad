@@ -101,7 +101,7 @@ arms_spacing = 10;         // space between both arms
 
 // ── LED holder ────────────────────────────────────────────────
 
-cable_hole_r = 2.5;
+cable_hole_r = 3.0;
 
 // ── 28BYJ-48 stepper motor ───────────────────────────────────
 stepper_d   = 28.2;        // body diameter
@@ -138,7 +138,7 @@ $fn = 256;
 // ═══════════════════════════════════════════════════════════════
 
 // D-shaft press-fit hole
-module d_shaft_hole(h = 6) {
+module d_shaft_hole(h = 10) {
     rotate([-90, 0, 0])
         linear_extrude(h)
         difference() {
@@ -475,7 +475,7 @@ module gabarit_diffuser(){
     flanges(h = 6);
     }
 }
-//linkage_arms();
+linkage_arms();
 //linkage_arm_N();
 
 //translate([arm_horiz_len - (arm_holder_thickness/2 - arm_w), -arm_vert_offset - arm_slot_margin - (arm_slot_start + arm_slot_len/2)])
@@ -497,7 +497,7 @@ module gabarit_diffuser(){
 
 //gap(air_gap_h, air_gap_h);
 
-diffuser(5, 2);
+//diffuser(5, 2);
 
 //pad_holder(pad_holder_h);
 
