@@ -60,16 +60,16 @@ use <stepper.scad>
 use <flat_panel.scad>
 
 /* [View] */
-part = "preview"; // [preview, seat, case, lid]
+part = "seat"; // [preview, seat, case, lid]
 // Arm opening angle in preview (0 = closed on the aperture)
 preview_open = 270; // [0:270]
 // animate the swing 0→270°: enable this, then View ▸ Animate and set
 // e.g. FPS 20 / Steps 100 (overrides preview_open with 270 × $t)
 animate = false;
-show_motor  = true;
-show_arms   = true;
-show_panel  = true;
-show_shield = true;
+show_motor  = false;
+show_arms   = false;
+show_panel  = false;
+show_shield = false;
 show_lid    = false;
 
 /* [Dew shield / seat] */
@@ -401,12 +401,21 @@ module preview() {
                     translate([24.5, 0, 0])
                         rotate([0, 90, 0]) {
                             linkage_arms();
-                            if (show_panel)
+                            if (show_panel) {
                                 // panel stack ghost: Ø111 × 33, at slot-mid
                                 color("white", 0.35)
                                     translate([33, panel_off, 0])
                                         rotate([0, 90, 0])
                                             cylinder(h = 33, r = panel_r, center = true);
+                                // Mega/ULN case on the panel back (from
+                                // flat_panel.scad) — fattens the swept
+                                // envelope; recheck riser_h / hang-down
+                                // clearance with this ghost visible
+                                color("red", 0.25)
+                                    translate([33 + 33/2, panel_off, 0])
+                                        rotate([0, -90, 0])
+                                            mega_case_envelope();
+                            }
                         }
     }
 }
