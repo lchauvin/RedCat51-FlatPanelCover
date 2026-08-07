@@ -49,11 +49,19 @@
  include <BOSL2/screws.scad>
  include <BOSL2/shapes3d.scad>
  
+ include <arms.scad>
  
 // ═══════════════════════════════════════════════════════════════
 //  GLOBAL TOGGLE
 // ═══════════════════════════════════════════════════════════════
 
+show_base = false;
+show_diffusers = true;
+show_diffuser_gabarit = false;
+show_circuit_box = false;
+show_spacers = false;
+show_pad_holder = false;
+show_arms = false;
 ENABLE_SKIRT = false;   // true → Option B skirt; false → Option A foam gasket
 
 // ═══════════════════════════════════════════════════════════════
@@ -82,22 +90,6 @@ pad_holder_h = 5;
 
 wall_t = 3;             // Wall thickness
 extra_diameter = 10;    // Extra space to add diffuser shelves and avoid border issues
-// ── Pivot arm ────────────────────────────────────────────────
-
-arm_pivot_d          = 14;
-arm_horiz_len        = 51;
-arm_w                = 7;
-arm_vert_len         = 75;
-arm_vert_offset      = 10;
-arm_slot_start       =  25;
-arm_slot_len         =  40;
-arm_slot_w           =  3.4;
-arm_slot_margin      =  3;
-arm_holder_length    = 25;
-arm_holder_thickness = 10;
-arm_cylinder_d       = 10;
-
-arms_spacing = 10;         // space between both arms
 
 // ── LED holder ────────────────────────────────────────────────
 
@@ -152,113 +144,6 @@ module d_shaft_hole(h = 10) {
             translate([0, shaft_flat + shaft_d / 2])
                 square([shaft_d + 1, shaft_d], center = true);
         }
-}
-
-// Arms
-module linkage_arm_L() {
-
-    module arm_bar(p1, p2, w) {
-        hull() {
-            translate(p1) cylinder(h = arm_w, d = w);
-            translate(p2) cylinder(h = arm_w, d = w);
-        }
-    }
-    module arm_slot(p1, p2, w) {
-        hull() {
-            translate(p1) cylinder(h = arm_w + 2, d = w);
-            translate(p2) cylinder(h = arm_w + 2, d = w);
-        }
-    }
-
-    difference() {
-        union() {
-            cylinder(h = arm_w, d = arm_pivot_d);
-            arm_bar([0, 0], [arm_horiz_len, -arm_vert_offset], arm_w);
-            arm_bar(
-                [arm_horiz_len, -arm_vert_offset],
-                [arm_horiz_len, -arm_vert_offset - arm_vert_len],
-                arm_w
-            );
-        }
-       
-        // Adjustable slot (M3 bolt to main_body bracket)
-        arm_slot(
-            [arm_horiz_len, -arm_vert_offset - arm_slot_margin - arm_slot_start, -1],
-            [arm_horiz_len, -arm_vert_offset - arm_slot_margin - (arm_slot_start + arm_slot_len), -1],
-            arm_slot_w
-        );
-    }
-}
-
-module linkage_arm_N() {
-
-    module arm_bar(p1, p2, w) {
-        hull() {
-            translate(p1) cylinder(h = arm_w, d = w);
-            translate(p2) cylinder(h = arm_w, d = w);
-        }
-    }
-    module arm_slot(p1, p2, w) {
-        hull() {
-            translate(p1) cylinder(h = arm_w + 2, d = w);
-            translate(p2) cylinder(h = arm_w + 2, d = w);
-        }
-    }
-
-    difference() {
-        union() {
-            cylinder(h = arm_w, d = arm_pivot_d);
-            arm_bar([arm_pivot_d/4, 0], [arm_pivot_d/4, -arm_vert_offset], arm_w);
-            arm_bar([-arm_pivot_d/4, 0], [arm_pivot_d/4, -arm_vert_offset], arm_w);
-            arm_bar([arm_pivot_d/4, -arm_vert_offset], [arm_horiz_len, -arm_vert_offset], arm_w);
-            arm_bar(
-                [arm_horiz_len, -arm_vert_offset],
-                [arm_horiz_len, -arm_vert_offset - arm_vert_len],
-                arm_w
-            );
-        }
-       
-        // Adjustable slot (M3 bolt to main_body bracket)
-        arm_slot(
-            [arm_horiz_len, -arm_vert_offset - arm_slot_margin - arm_slot_start, -1],
-            [arm_horiz_len, -arm_vert_offset - arm_slot_margin - (arm_slot_start + arm_slot_len), -1],
-            arm_slot_w
-        );
-    }
-}
-
-module linkage_arm_L_shaft() {  
-    //difference() {
-        difference() {
-            linkage_arm_N();
-            
-            // D-shaft hole — axis along +Z (arm thickness direction)
-            translate([0, 0, -3]) {
-                rotate([90, 0, 0]) {
-                    d_shaft_hole();
-                }
-            }
-        }
-        
-        // M3 set screw — +Y face, radial to shaft
-        //translate([0, arm_pivot_d / 2 + 1, arm_thickness / 2])
-        //    rotate([90, 0, 0])
-        //        cylinder(d = 3.0, h = arm_pivot_d / 2 + 2);
-                
-    //}
-}
-
-module linkage_arms() {  
-    union() {
-        translate([0, 0, -(arm_w + (arms_spacing/2))])
-            linkage_arm_L_shaft();
-    
-        translate([0, 0, -arms_spacing/2])
-            cylinder(h=arms_spacing, r=arm_cylinder_d/2);
-    
-        translate([0, 0, arms_spacing/2])
-            linkage_arm_N();
-    }
 }
 
 // LED body
@@ -427,42 +312,52 @@ module pad_holder(h) {
 
 module assembly(){
 
-// Arms
-linkage_arms();
-
 // LED body
-translate([arm_horiz_len - (arm_holder_thickness - arm_w)/2, -arm_vert_offset -arm_slot_margin - (arm_slot_start + arm_slot_len/2) - flat_panel_arm_offset, 0])
-    rotate([0, -90, 0])
-        translate([0, -(dew_shield_r - 10), arm_holder_thickness/2])
-            led_body();
-            
-// Diffuser 1
-translate([-led_h - diffuser_h, 0, 0])
-    translate([arm_horiz_len - (arm_holder_thickness - arm_w)/2, -arm_vert_offset -arm_slot_margin - (arm_slot_start + arm_slot_len/2) - flat_panel_arm_offset, 0])
-        rotate([0, 90, 0])
-            translate([0, -(dew_shield_r - 10), -arm_holder_thickness/2])
-                diffuser(5, 3);            
-            
-// Gap
-translate([-led_h - diffuser_h - (air_gap_h/2), 0, 0])
+if (show_base)
     translate([arm_horiz_len - (arm_holder_thickness - arm_w)/2, -arm_vert_offset -arm_slot_margin - (arm_slot_start + arm_slot_len/2) - flat_panel_arm_offset, 0])
         rotate([0, -90, 0])
             translate([0, -(dew_shield_r - 10), arm_holder_thickness/2])
-                gap(air_gap_h, air_gap_h);
+                led_body();
+            
+// Diffuser 1
+if (show_diffusers)
+    translate([-led_h - diffuser_h, 0, 0])
+        translate([arm_horiz_len - (arm_holder_thickness - arm_w)/2, -arm_vert_offset -arm_slot_margin - (arm_slot_start + arm_slot_len/2) - flat_panel_arm_offset, 0])
+            rotate([0, 90, 0])
+                translate([0, -(dew_shield_r - 10), -arm_holder_thickness/2]) {
+                    diffuser(5, 4);
+                    if (show_diffuser_gabarit)            
+                        gabarit_diffuser();
+                    }
+// Gap
+if (show_spacers)
+    translate([-led_h - diffuser_h - (air_gap_h/2), 0, 0])
+        translate([arm_horiz_len - (arm_holder_thickness - arm_w)/2, -arm_vert_offset -arm_slot_margin - (arm_slot_start + arm_slot_len/2) - flat_panel_arm_offset, 0])
+            rotate([0, -90, 0])
+                translate([0, -(dew_shield_r - 10), arm_holder_thickness/2])
+                    gap(air_gap_h, air_gap_h);
                 
 // Diffuser 2
-translate([-led_h - diffuser_h * 2 - (air_gap_h/2), 0, 0])
-    translate([arm_horiz_len - (arm_holder_thickness - arm_w)/2, -arm_vert_offset -arm_slot_margin - (arm_slot_start + arm_slot_len/2) - flat_panel_arm_offset, 0])
-        rotate([0, 90, 0])
-            translate([0, -(dew_shield_r - 10), -arm_holder_thickness/2])
-                diffuser(5, 3);
-
+if (show_diffusers)
+    translate([-led_h - diffuser_h * 2 - (air_gap_h/2), 0, 0])
+        translate([arm_horiz_len - (arm_holder_thickness - arm_w)/2, -arm_vert_offset -arm_slot_margin - (arm_slot_start + arm_slot_len/2) - flat_panel_arm_offset, 0])
+            rotate([0, 90, 0])
+                translate([0, -(dew_shield_r - 10), -arm_holder_thickness/2]) {
+                    diffuser(5, 4);
+                    if (show_diffuser_gabarit)
+                        gabarit_diffuser();
+                    }
 // Pad holder
-translate([-led_h - diffuser_h * 2 - (air_gap_h/2) - pad_holder_h, 0, 0])
-    translate([arm_horiz_len - (arm_holder_thickness - arm_w)/2, -arm_vert_offset -arm_slot_margin - (arm_slot_start + arm_slot_len/2) - flat_panel_arm_offset, 0])
-        rotate([0, 90, 0])
-            translate([0, -(dew_shield_r - 10), -arm_holder_thickness/2])
-                pad_holder(pad_holder_h);    
+if (show_pad_holder)
+    translate([-led_h - diffuser_h * 2 - (air_gap_h/2) - pad_holder_h, 0, 0])
+        translate([arm_horiz_len - (arm_holder_thickness - arm_w)/2, -arm_vert_offset -arm_slot_margin - (arm_slot_start + arm_slot_len/2) - flat_panel_arm_offset, 0])
+            rotate([0, 90, 0])
+                translate([0, -(dew_shield_r - 10), -arm_holder_thickness/2])
+                    pad_holder(pad_holder_h);
+                
+// Arms
+if (show_arms)
+    linkage_arms();
             
 }
 
@@ -471,12 +366,11 @@ module gabarit_diffuser(){
  difference(){
     cylinder(h=2, r=dew_shield_r + extra_diameter - 1);
     diffuser(5, 3);
-    translate([0, 0, (h - flange_h)/2])
     flanges(h = 6);
     }
 }
-linkage_arms();
-//linkage_arm_N();
+
+
 
 //translate([arm_horiz_len - (arm_holder_thickness/2 - arm_w), -arm_vert_offset - arm_slot_margin - (arm_slot_start + arm_slot_len/2)])
 
@@ -503,8 +397,8 @@ linkage_arms();
 
 OPEN_ANGLE = $t * 270;
 
-//rotate([0, 0, OPEN_ANGLE])
-//    assembly();
+rotate([0, 0, OPEN_ANGLE])
+    assembly();
 
 /*
 translate([-led_h - diffuser_h * 2 - (air_gap_h/2) - pad_holder_h - 10, 0, 0])

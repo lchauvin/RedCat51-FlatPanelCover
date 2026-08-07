@@ -54,6 +54,7 @@
 // BOSL2 must be included here too: flat_panel.scad's modules call BOSL2's
 // overridden primitives, which need BOSL2's top-level $-variables in scope
 include <BOSL2/std.scad>
+include <arms.scad>
 
 use <stepper.scad>
 use <flat_panel.scad>
