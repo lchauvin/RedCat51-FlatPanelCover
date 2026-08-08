@@ -60,17 +60,18 @@ use <stepper.scad>
 use <flat_panel.scad>
 
 /* [View] */
-part = "seat"; // [preview, seat, case, lid]
+part = "case"; // [preview, seat, case, lid]
 // Arm opening angle in preview (0 = closed on the aperture)
 preview_open = 270; // [0:270]
 // animate the swing 0→270°: enable this, then View ▸ Animate and set
 // e.g. FPS 20 / Steps 100 (overrides preview_open with 270 × $t)
 animate = false;
-show_motor  = false;
+show_motor  = true;
 show_arms   = false;
 show_panel  = false;
 show_shield = false;
-show_lid    = false;
+show_lid    = true;
+add_case_screw_insert = false;
 
 /* [Dew shield / seat] */
 dew_shield_od = 84.0;  // measured OD of the RedCat 51 dew shield
@@ -111,7 +112,7 @@ m3_head_d   = 6.5;
 riser_h   = 25;
 flange_t  = 4;     // base flange thickness
 case_wall = 2.5;
-front_t   = 4.0;   // front wall (shaft side; holds the blind screw pilots)
+front_t   = 2.0;   // front wall (shaft side; holds the blind screw pilots)
 case_hw   = 23;    // case half-width along Y
 // flange extents (asymmetric: long tail, short nose)
 flg_x0    = -22;
@@ -123,7 +124,7 @@ panel_off = -105;   // offset of the flat panel on the arm
 /* [28BYJ-48 motor] */
 motor_d       = 28.2;
 motor_len     = 19.5;
-motor_clear   = 0.7;  // radial + axial pocket clearance
+motor_clear   = 2;  // radial + axial pocket clearance
 shaft_off     = 8.0;  // shaft offset from body center
 flange_hole_d = 10.0; // pass-through for the Ø9 collar
 recess_d      = 16;   // front-face relief so the arm hub grabs more shaft
@@ -311,12 +312,15 @@ module motor_case() {
                         cylinder(h = x_face - x_back + 1, d = tab_d + tab_clear);
 
         // wire-cover trench in the cavity floor, runs out the open back
-        translate([x_back - 1, -(wire_w/2 + 0.5), z_case + 2])
-            cube([x_face - x_back + 1, wire_w + 1, z_body - 10.5 - (z_case + 2)]);
+        translate([x_back - 1, -(wire_w/2 + 0.5), z_case - 2])
+            cube([x_face - x_back + 1, wire_w + 1, z_body - 10.5 - (z_case - 2)]);
 
         // shaft collar pass-through
-        teardrop_x(flange_hole_d, x_face - 1, x_front + 1, 0, z_shaft, flange_hole_d/2 * 0.8);
-
+        //teardrop_x(flange_hole_d, x_face - 1, x_front + 1, 0, z_shaft, flange_hole_d/2 * 0.8)
+        translate([x_face - 1, 0, z_shaft])
+            rotate([90, 0, 90])
+            cylinder(h=20, r=flange_hole_d/2)
+        
         // front-face relief so the arm hub can ride closer to the shaft base
         translate([x_front - recess_dep, 0, z_shaft])
             rotate([0, 90, 0])
@@ -324,10 +328,12 @@ module motor_case() {
 
         // blind M3 self-tap pilots in the front wall for the lid screws
         // (blind: they must not break through into the arm's swing plane)
-        for (s = [-1, 1])
-            translate([x_face - 0.1, s * ear_spacing/2, z_body])
-                rotate([0, 90, 0])
-                    cylinder(h = front_t - 0.6, d = ear_pilot);
+        // Not blind finally, easier to add M3 insert
+        if (add_case_screw_insert)
+            for (s = [-1, 1])
+                translate([x_face - 0.1, s * ear_spacing/2, z_body])
+                    rotate([0, 90, 0])
+                        cylinder(h = front_t + 0.6, d = ear_pilot);
 
         // 4× M3 down to the platform inserts, counterbored heads
         for (p = scr_pts)
@@ -355,7 +361,7 @@ module case_lid_in_place() {
         translate([x_back - lid_t - 0.1, 0, 0])
             rotate([90, 0, 90])
                 linear_extrude(lid_t)
-                    rrect2d(-case_hw, case_hw, z_case, case_top, 3);
+                    rrect2d(-case_hw + 1, case_hw - 1, z_case - 3, case_top, 3);
         // lid screws align with the motor ear holes and the wall pilots
         for (s = [-1, 1])
             translate([x_back - lid_t - 1, s * ear_spacing/2, z_body]) {
