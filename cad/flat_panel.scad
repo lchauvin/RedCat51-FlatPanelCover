@@ -56,14 +56,15 @@
 // ═══════════════════════════════════════════════════════════════
 
 show_base = true;
-show_diffusers = true;
+show_diffusers = false;
 show_diffuser_gabarit = false;
 show_circuit_box = false;
 show_spacers = false;
 show_pad_holder = false;
-show_arms = true;
+show_arms = false;
 show_mega_case = false;     // preview the Arduino Mega case behind led_body
 show_mega_lid  = false;     // preview its lid too
+blind_base = true;        // make screw hole go through for testing purpose
 ENABLE_SKIRT = false;   // true → Option B skirt; false → Option A foam gasket
 
 // ═══════════════════════════════════════════════════════════════
@@ -96,6 +97,25 @@ extra_diameter = 10;    // Extra space to add diffuser shelves and avoid border 
 // ── LED holder ────────────────────────────────────────────────
 
 cable_hole_r = 3.0;
+
+// ── LED tracing-pad (LGP) insert — *** measure your gutted pad *** ──
+// A gutted A5 USB tracing pad replaces the COB strip on the tray wall:
+// reflector sheet + light-guide plate + diffuser film(s), taped into
+// one stack and cut to a notched disc with gabarit_pad().  The stack
+// lies flat on the tray floor (foam behind if it rattles) and diffuser
+// ring 1 clamps it.  KEEP the factory LED edge as the straight chord —
+// the LGP extraction pattern is calibrated from that edge.  Wrap the
+// cut edges in white or aluminium tape so they don't leak a bright rim.
+// Electrical: bypass the pad's touch controller, wire the strip leads
+// straight to the MOSFET output (check 5 V vs 12 V strip first!).
+pad_stack_t    = 3.0;   // reflector + LGP + films, taped together
+pad_led_edge_w = 6.0;   // LED strip depth beyond the lit edge (PCB incl.)
+pad_chord_d    = 44;    // chord (LED edge) distance from panel centre
+pad_chord_az   = -30;   // chord rotation off −X; −30° centres the strip
+                        // in the gap between two flange bosses
+pad_disc_clear = 0.4;   // radial clearance to the 104 mm tray bore
+pad_notch_d    = m3_head_d * 1.4 + 1.5;  // flange-boss clearance notches
+gabarit_pad_t  = 2;     // cutting-template plate thickness
 
 // ── 28BYJ-48 stepper motor ───────────────────────────────────
 stepper_d   = 28.2;        // body diameter
@@ -250,7 +270,11 @@ module led_body() {
                 
             }
             translate([0, 0, (led_h + wall_t)/2 + 2])
+                if (blind_base) {
+                    flanges(h = led_h + wall_t + 4, screw = true, insert = true);
+                } else {
                     flanges(h = led_h + wall_t, screw = true, insert = true);
+                }
 
             // Mega-case mounting: 4× M3 flat-head countersunk from the tray
             // side into inserts in the case floor, + LED-lead pass-through
@@ -601,6 +625,42 @@ module gabarit_diffuser(){
     }
 }
 
+// Cutting template for the tracing-pad stack: print it, lay it on the
+// taped-together stack with the straight edge butted against the
+// factory LED strip, trace, cut.  The three notches clear the led_body
+// flange bosses and force the correct clocking; with pad_chord_az=−30
+// the strip lands in a boss gap, one strip end right at the −X cable
+// hole for the leads.
+module gabarit_pad() {
+    assert(pad_chord_d + pad_led_edge_w <= dew_shield_r + extra_diameter,
+           "LED strip edge exceeds the tray bore — reduce pad_chord_d");
+    r = dew_shield_r + extra_diameter - pad_disc_clear;
+    difference() {
+        linear_extrude(gabarit_pad_t)
+            difference() {
+                circle(r = r);
+                // LED-edge chord — everything beyond it is the factory
+                // strip edge, which is not cut
+                rotate([0, 0, pad_chord_az])
+                    translate([-(pad_chord_d + r), 0])
+                        square([2 * r, 2 * r + 4], center = true);
+                // flange-boss clearance notches (same polar positions
+                // as flanges())
+                for (a = [0, 120, 240])
+                    rotate([0, 0, a])
+                        translate([0, dew_shield_r + extra_diameter - wall_t + 1])
+                            circle(d = pad_notch_d);
+            }
+        // engraved 0.6 into the top face, reads along the chord
+        rotate([0, 0, pad_chord_az])
+            translate([-(pad_chord_d - 3), 0, gabarit_pad_t - 0.6])
+                linear_extrude(0.7)
+                    rotate([0, 0, 90])
+                        text("LED EDGE", size = 5,
+                             halign = "center", valign = "top");
+    }
+}
+
 
 
 //translate([arm_horiz_len - (arm_holder_thickness/2 - arm_w), -arm_vert_offset - arm_slot_margin - (arm_slot_start + arm_slot_len/2)])
@@ -648,6 +708,9 @@ cylinder(d = m3_clear,         h = 5 + 2, center = true);
 */
 
 //gabarit_diffuser();
+
+//
+//gabarit_pad();               // cutting template for the LGP pad stack
 
 // ── Arduino Mega case prints ──
 //mega_case_print();           // case body, mate face on the bed

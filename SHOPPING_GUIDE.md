@@ -60,6 +60,28 @@ NINA  ──Alpaca HTTP──▶  Python server (PC)  ──USB Serial──▶ 
 
 > **Why this strip?** COB (Chip-on-Board) produces a continuous glow with no individual LED hot spots, which dramatically reduces the diffusion work needed. 6500K cool white gives a good signal across all filters including LRGB and narrowband. CRI90 ensures broad spectral coverage.
 
+#### Upgrade: LED tracing pad → uniform light-guide sheet (~$15–25 CAD)
+
+The tech inside commercial panels (Pegasus FlatMaster Neo class): an edge-lit **light-guide plate** — LED strip firing into the edge of an acrylic plate with a printed dot pattern, white reflector behind, diffuser films in front. A cheap **A5 USB LED tracing/copy pad** is the same stack in a finished housing.
+
+| Item | Spec | Where to Buy |
+|---|---|---|
+| **A5 LED tracing pad** | USB powered, dimmable (touch control), A5 (210×148 mm) | Amazon.ca (search "A5 LED tracing pad USB") — ~$15–25 |
+
+**Integration** (replaces the COB strip on the tray wall):
+
+1. Open the pad; keep the internal stack: white reflector + light-guide plate + diffuser film(s). Tape the layers together so they can't shift.
+2. **Bypass the touch-controller PCB** — it resets on power-up and would fight NINA. Solder leads directly to the LED strip, downstream of the controller.
+3. **Check the strip voltage first**: most USB pads are 5 V (drop-in for the existing MOSFET circuit); a few are 12 V (needs a boosted supply). Budget ~0.5–1 A on the USB power rail.
+4. **Before cutting anything, check the strip wiring** — the optical stack always survives cutting; the strip only survives if it's parallel-wired:
+   - Two continuous copper rails with repeating resistors along the strip → **parallel**: cuttable. Cut so the section you keep **includes the feed point** (where the supply wires attach).
+   - No resistors on the strip + an inductor (small coil/cube) on the driver PCB → **series chain on a boost driver**: do NOT cut the strip. Instead detach it intact from the LGP edge, couple ~55 mm of it to the cut edge, and lay the surplus along the tray wall (harmless — white walls recycle the light; or mask it with tape). Keep its driver in that case, PWM its enable/supply.
+   - Fallback that always works: skip the pad's strip entirely and butt a piece of the **existing COB strip** (5 V, cuttable every few cm) against the cut LGP edge — the light guide doesn't care what injects the light.
+5. Print `gabarit_pad()` from `cad/flat_panel.scad`, lay it on the stack with the straight edge butted against the **factory LED edge** (the dot pattern is calibrated from that edge — never cut it off), trace, cut. The three notches clear the tray's flange bosses and set the clocking.
+6. Wrap the cut edges in white or aluminium tape (stops a bright rim), drop the stack flat into the tray, route the two leads out the cable hole, clamp with diffuser ring 1.
+
+No firmware change: the 25 kHz PWM drives the pad strip exactly like the COB strip.
+
 ---
 
 ### Diffusers (~$2–15 CAD)

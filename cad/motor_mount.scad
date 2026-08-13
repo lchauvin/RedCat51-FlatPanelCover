@@ -60,16 +60,16 @@ use <stepper.scad>
 use <flat_panel.scad>
 
 /* [View] */
-part = "case"; // [preview, seat, case, lid]
+part = "case"; // [preview, seat, case, lid, arms]
 // Arm opening angle in preview (0 = closed on the aperture)
 preview_open = 270; // [0:270]
 // animate the swing 0→270°: enable this, then View ▸ Animate and set
 // e.g. FPS 20 / Steps 100 (overrides preview_open with 270 × $t)
 animate = false;
 show_motor  = true;
-show_arms   = false;
-show_panel  = false;
-show_shield = false;
+show_arms   = true;
+show_panel  = true;
+show_shield = true;
 show_lid    = true;
 add_case_screw_insert = false;
 
@@ -109,7 +109,7 @@ m3_head_d   = 6.5;
 
 /* [Riser / motor case] */
 // raise the hinge axis to clear the panel swing  ** main tuning knob **
-riser_h   = 25;
+riser_h   = 35;
 flange_t  = 4;     // base flange thickness
 case_wall = 2.5;
 front_t   = 2.0;   // front wall (shaft side; holds the blind screw pilots)
@@ -408,19 +408,19 @@ module preview() {
                         rotate([0, 90, 0]) {
                             linkage_arms();
                             if (show_panel) {
-                                // panel stack ghost: Ø111 × 33, at slot-mid
+                                // panel stack ghost: Ø111 × 41, at slot-mid
                                 color("white", 0.35)
-                                    translate([33, panel_off, 0])
+                                    translate([41, panel_off, 0])
                                         rotate([0, 90, 0])
-                                            cylinder(h = 33, r = panel_r, center = true);
+                                            cylinder(h = 41, r = panel_r, center = true);
                                 // Mega/ULN case on the panel back (from
                                 // flat_panel.scad) — fattens the swept
                                 // envelope; recheck riser_h / hang-down
                                 // clearance with this ghost visible
-                                color("red", 0.25)
-                                    translate([33 + 33/2, panel_off, 0])
-                                        rotate([0, -90, 0])
-                                            mega_case_envelope();
+                                //color("red", 0.25)
+                                //    translate([33 + 33/2, panel_off, 0])
+                                //        rotate([0, -90, 0])
+                                //            mega_case_envelope();
                             }
                         }
     }
@@ -440,4 +440,6 @@ if (part == "preview") {
 } else if (part == "lid") {
     // laid flat for printing
     translate([0, 0, x_back - 0.1]) rotate([0, 90, 0]) case_lid_in_place();
+} else if (part == "arms") {
+    linkage_arms();
 }

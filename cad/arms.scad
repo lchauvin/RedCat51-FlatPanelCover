@@ -1,7 +1,7 @@
 /* [Arms] */
 
 arm_pivot_d          = 14;
-arm_horiz_len        = 51;
+arm_horiz_len        = 65;
 arm_w                = 7;
 arm_vert_len         = 75;
 arm_vert_offset      = 10;
@@ -18,11 +18,11 @@ arms_spacing = 10;         // space between both arms
 // ── 28BYJ-48 stepper motor ───────────────────────────────────
 stepper_d   = 28.2;        // body diameter
 stepper_len = 19.5;        // body length (shaft end to back)
-shaft_d     =  5.0;        // D-shaft diameter
+shaft_d     =  4.8;        // D-shaft diameter
 shaft_flat  =  1.6;        // flat cut offset from shaft centre
 
-m3_clear     = 4;   // previous value: 3.4
-m3_insert    = m3_clear + 0.2;
+m3_clear     = 4.0;   // previous value: 3.4
+m3_insert    = m3_clear + 0.3;
 m3_head_d    = 6.5;
 
 
@@ -141,25 +141,37 @@ module linkage_arm_L_shaft() {
     //}
 }
 
-module linkage_arms() {  
+module linkage_arms(securing_hole = false) {  
     union() {
         difference() {
             translate([0, 0, -(arm_w + (arms_spacing/2))])
                 linkage_arm_L_shaft();
     
             // Securing screw hole
-            rotate([90,0,0])
-                translate([0,-(arms_spacing + arm_w)/2,-5])
-                    cylinder(d = m3_insert, h = 7, center = true);   
+            if (securing_hole)
+                rotate([90,0,0])
+                    translate([0,-(arms_spacing + arm_w)/2,-5])
+                        cylinder(d = m3_insert, h = 7, center = true);   
         }
     
         translate([0, 0, -arms_spacing/2])
             cylinder(h=arms_spacing, r=arm_cylinder_d/2);
-    
+        
+        // small offset to avoid the arms to rub against the case
+        offset_w = 2;
+        difference() {
+            translate([0, 0, -arms_spacing/2 - arm_w - offset_w])
+                cylinder(h=offset_w, r=arm_cylinder_d/2 - 1);
+            
+            translate([0, 0, -arms_spacing/2 - arm_w - 2 - offset_w])
+               rotate([90, 0, 0])
+                   d_shaft_hole();
+            
+        }
 
         translate([0, 0, arms_spacing/2])
             linkage_arm_N();
     }
 }
 
-//linkage_arms();
+linkage_arms();
